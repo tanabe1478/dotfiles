@@ -14,6 +14,9 @@
               initial-frame-alist))            
 (setq default-frame-alist initial-frame-alist) 
 
+;; 閉じ括弧の自動挿入
+(electric-pair-mode 1)
+
 
 
 ;; load-pathを追加する関数を定義
@@ -48,6 +51,8 @@
 (setq php-indent-level 2)
 (setq cperl-indent-level 4)
 (setq cperl-continued-statement-offset 4)
+(setq sh-basic-offset 2)
+(setq sh-indentation 2)
 (setq cperl-close-paren-offset -4)
 (setq cperl-indent-region-fix-constructs 1)
 (setq cperl-indent-parens-as-block t)
@@ -178,7 +183,7 @@
  '(company-idle-delay nil)
  '(package-selected-packages
    (quote
-    (robe company undo-tree undohist moccur-edit color-moccur inf-ruby rbenv ruby-block ruby-electric ruby-mode helm php-mode))))
+    (markdown-mode robe company undo-tree undohist moccur-edit color-moccur inf-ruby rbenv ruby-block ruby-electric ruby-mode helm php-mode))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -499,3 +504,7 @@ If INDENT is `multi-char', that means indent multi-character
       (define-key company-active-map [tab] 'company-complete-selection) ;; TABで候補を設定
       (define-key emacs-lisp-mode-map (kbd "C-M-i") 'company-complete) ;; 各種メジャーモードでも C-M-iで company-modeの補完を使う
       ))
+
+;; markdownの環境を作っておく
+(autoload 'markdown-mode "markdown-mode.el" "Major mode for editing Markdown files" t)
+(add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
