@@ -17,6 +17,10 @@
 ;; 閉じ括弧の自動挿入
 (electric-pair-mode 1)
 
+;;; *.~ とかのバックアップファイルを作らない
+(setq make-backup-files nil)
+;;; .#* とかのバックアップファイルを作らない
+(setq auto-save-default nil)
 
 
 ;; load-pathを追加する関数を定義
@@ -26,6 +30,11 @@
 ;; just comment it out by adding a semicolon to the start of the line.
 ;; You may delete these explanatory comments.
 (package-initialize)
+
+;; emacsサーバー
+(require 'server)
+(unless (server-running-p)
+  (server-start))
 
 (defun add-to-load-path (&rest paths)
   (let (path)
@@ -183,7 +192,7 @@
  '(company-idle-delay nil)
  '(package-selected-packages
    (quote
-    (markdown-mode robe company undo-tree undohist moccur-edit color-moccur inf-ruby rbenv ruby-block ruby-electric ruby-mode helm php-mode))))
+    (visual-regexp-steroids pcre2el scratch-log avy easy-repeat shackle anzu markdown-mode robe company undo-tree undohist moccur-edit color-moccur inf-ruby rbenv ruby-block ruby-electric ruby-mode helm php-mode))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -508,3 +517,107 @@ If INDENT is `multi-char', that means indent multi-character
 ;; markdownの環境を作っておく
 (autoload 'markdown-mode "markdown-mode.el" "Major mode for editing Markdown files" t)
 (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
+
+;; anzu
+(when (require 'anzu)
+  (global-anzu-mode +1))
+
+;; shackle
+(when (require 'shackle)
+  (setq shackle-rules
+        '(
+          (compilation-mode :align below :ratio 0.3)
+          ("*Help*" :align right)
+          ("*Completions*" :align below :ratio 0.3)
+          ("\*helm" :regexp t :align below :ratio 0.3)
+          ;; 上部に表示
+          ("foo" :align above)
+          ;; 別フレームで表示
+          ("bar" :frame t)
+          ;; 同じウィンドウで表示
+          ("baz" :same t)
+          ;; ポップアップで表示
+          ("hoge" :popup t)
+          ;; 選択する
+          ("abc" :select t)
+          ))
+
+  (shackle-mode 1)
+  (setq shackle-lighter "")
+
+  ;;; C-zで直前のウィンドウ構成に戻す
+  ;(winner-mode 1)
+  ;(global-set-key (kbd "C-z") 'winner-undo)
+
+  ;;;; test
+  ;; (display-buffer (get-buffer-create "*compilation*"))
+  ;; (display-buffer (get-buffer-create "*Help*"))
+  ;; (display-buffer (get-buffer-create "foo"))
+  ;; (display-buffer (get-buffer-create "bar"))
+  ;; (display-buffer (get-buffer-create "baz"))
+  ;; (display-buffer (get-buffer-create "hoge"))
+  ;; (display-buffer (get-buffer-create "abc"))
+  )
+
+;; ls dired support.
+(setq dired-use-ls-dired nil)
+;; Reveal in Finder
+(defun my-dired-do-reveal (&optional arg)
+  "Reveal the marked files in Finder.
+If no files are marked or a specific numeric prefix arg is given,
+the next ARG files are used.  Just \\[universal-argument] means the current file."
+  (interactive "P")
+  (let ((files (dired-get-marked-files nil arg))
+        (script
+         (concat
+          "on run argv\n"
+          "    set itemArray to {}\n"
+          "    repeat with i in argv\n"
+          "        set itemArray to itemArray & (i as POSIX file as Unicode text)\n"
+          "    end repeat\n"
+          "    tell application \"Finder\"\n"
+          "        activate\n"
+          "        reveal itemArray\n"
+          "    end tell\n"
+          "end run\n")))
+    (apply 'start-process "osascript-reveal" nil "osascript" "-e" script files)))
+(eval-after-load "dired"
+  '(define-key dired-mode-map "\M-r" 'my-dired-do-reveal)) ; move-to-window-line
+
+
+(when (require 'avy nil t)
+  (define-key global-map (kbd "M-g g") 'avy-goto-line)
+  (define-key global-map (kbd "M-g M-g") 'avy-goto-line))
+
+(when (require 'easy-repeat nil t)
+  (easy-repeat-mode))
+
+;; (install-elisp "https://raw.github.com/wakaran/scratch-log/4798f1170ea4ec17bb4f61e4b84e3f1bcec9ad18/scratch-log.el")
+(when (require 'scratch-log nil t)
+  (setq sl-scratch-log-file "~/.emacs.d/.scratch-log")
+  (setq sl-prev-scratch-string-file "~/.emacs.d/.scratch-log-prev")
+  ;; nil なら emacs 起動時に，最後に終了したときの スクラッチバッファの内容を復元しない。初期値は t です。
+  (setq sl-restore-scratch-p t)
+  ;;nil なら スクラッチバッファを削除できるままにする。初期値は t です。
+  (setq sl-prohibit-kill-scratch-buffer-p nil)
+  )
+
+(when (require 'pcre2el)
+  (add-hook 'prog-mode-hook 'rxt-mode)
+  (setq reb-re-syntax 'pcre)
+  )
+
+(require 'wdired)
+(define-key dired-mode-map "r" 'wdired-change-to-wdired-mode)
+
+
+(when (require 'visual-regexp-steroids)
+  ;; (setq vr/engine 'python) ;python regexpならばこれ
+  (setq vr/engine 'pcre2el) ;elispでPCREから変換
+  (global-set-key (kbd "M-%") 'vr/query-replace)
+  ;; multiple-cursorsを使っているならこれで
+  (global-set-key (kbd "C-c m") 'vr/mc-mark)
+  ;; 普段の正規表現isearchにも使いたいならこれを
+  (global-set-key (kbd "C-M-r") 'vr/isearch-backward)
+  (global-set-key (kbd "C-M-s") 'vr/isearch-forward)
+  )
